@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 
 import './App.css'
 import { ResearchForm } from './components/ResearchForm'
 import { ProductList } from './components/ProductList'
+import { Panier } from './components/Panier'
 
 export default function App() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
+  const [cart, setCart] = useState([])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -32,7 +34,6 @@ export default function App() {
           return
         }
 
-        // On garde seulement les champs utiles pour l’affichage
         const normalized = list.map(d => ({
           id: d.id,
           title: d.title ?? '',
@@ -44,7 +45,6 @@ export default function App() {
 
         setProducts(normalized)
       } catch (e) {
-        // Ignorer les annulations
         if (
           axios.isCancel?.(e) ||
           e?.code === 'ERR_CANCELED' ||
@@ -67,6 +67,48 @@ export default function App() {
     setQuery(nextQuery)
   }
 
+ 
+  function addToCart(product, qty = 1) {
+    if (!product?.id || !Number.isFinite(product.price)) return
+    setCart(prev => {
+      const i = prev.findIndex(p => p.id === product.id)
+      if (i === -1) return [...prev, { id: product.id, title: product.title, price: product.price, qty: Math.max(1, qty) }]
+      const next = [...prev]
+      next[i] = { ...next[i], qty: next[i].qty + Math.max(1, qty) }
+      return next
+    })
+  }
+
+  function setQty(id, qty) {
+    const n = Number(qty)
+    if (!Number.isFinite(n)) return
+    setCart(prev => {
+      if (n <= 0) return prev.filter(p => p.id !== id)
+      return prev.map(p => (p.id === id ? { ...p, qty: n } : p))
+    })
+  }
+
+  function incQty(id) {
+    setCart(prev => prev.map(p => (p.id === id ? { ...p, qty: p.qty + 1 } : p)))
+  }
+
+  function decQty(id) {
+    setCart(prev =>
+      prev
+        .map(p => (p.id === id ? { ...p, qty: p.qty - 1 } : p))
+        .filter(p => p.qty > 0)
+    )
+  }
+
+  function removeFromCart(id) {
+    setCart(prev => prev.filter(p => p.id !== id))
+  }
+
+  const total = useMemo(
+    () => cart.reduce((sum, item) => sum + item.price * item.qty, 0),
+    [cart]
+  )
+
   return (
     <div className="container py-4">
       <ResearchForm findProduct={findProduct} />
@@ -83,9 +125,21 @@ export default function App() {
 
       {!loading && !error && products.length > 0 && (
         <section className="py-3">
-          <ProductList products={products} />
+          <ProductList products={products} onAdd={addToCart} />
         </section>
       )}
+
+      {/*Panier */}
+      <section className="py-4">
+        <Panier
+          cart={cart}
+          total={total}
+          onInc={incQty}
+          onDec={decQty}
+          onRemove={removeFromCart}
+          onSetQty={setQty}
+        />
+      </section>
     </div>
   )
 }
