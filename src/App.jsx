@@ -39,7 +39,7 @@ export default function App() {
           price: d.price ?? null,
           category: d.category ?? '',
           description: d.description ?? '',
-          rating:d.rating ?? '',
+          rating: typeof d.rating === 'number' ? d.rating : null,
         }))
 
         setProducts(normalized)

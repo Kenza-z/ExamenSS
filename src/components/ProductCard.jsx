@@ -8,6 +8,7 @@ export function ProductCard({ nom, prix, categorie, description , rating/*, comm
         <p className="card-text"><strong>Description :</strong> {description || '—'}</p>
        <p className="card-text"><strong>Note :</strong> {rating || '—'}</p>
       </div>
+      <button type="button" class="btn btn-primary btn-sm">Ajouter au panier</button>
     </div>
   )
 }
